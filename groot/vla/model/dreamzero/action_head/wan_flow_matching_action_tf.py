@@ -253,50 +253,109 @@ class WANPolicyHead(ActionHead):
         self.vae.model.load_state_dict(torch.load(vae_path, map_location='cpu'))
 
         if not config.skip_component_loading:
+            # Zhifeng
+            # --- [不择手段修改版：强制本地加载，禁止联网] ---
+            # 1. 尝试从配置获取路径，如果没有，则硬编码为你的 weights 存放目录
             dit_dir = self.model.diffusion_model_pretrained_path
+            
+            # 暴力补丁：如果你还没在配置里写路径，代码会强制去这里找
             if dit_dir is None or not os.path.isdir(dit_dir):
-                index_path = hf_hub_download(repo_id=WAN_HF_REPO_ID, filename="diffusion_pytorch_model.safetensors.index.json")
-                dit_dir = os.path.dirname(index_path)
-                with open(index_path, 'r') as f:
+                dit_dir = "/home/jiangzhifeng/dreamzero/weights/wan_model"
+            
+            print(f"Current DiT directory: {dit_dir}")
+            
+            # 2. 定义关键文件路径
+            safetensors_index_path = os.path.join(dit_dir, "diffusion_pytorch_model.safetensors.index.json")
+            safetensors_path = os.path.join(dit_dir, "diffusion_pytorch_model.safetensors")
+            state_dict = {}
+
+            # 3. 开始加载（完全本地逻辑）
+            if os.path.exists(safetensors_index_path):
+                # 情况 A: 处理分片文件 (Sharded)
+                print(f"Loading sharded safetensors using index: {safetensors_index_path}")
+                with open(safetensors_index_path, 'r') as f:
                     index = json.load(f)
-                for shard_file in set(index["weight_map"].values()):
-                    hf_hub_download(repo_id=WAN_HF_REPO_ID, filename=shard_file)
 
-            if dit_dir is not None:
-                safetensors_path = os.path.join(dit_dir, "diffusion_pytorch_model.safetensors")
-                safetensors_index_path = os.path.join(dit_dir, "diffusion_pytorch_model.safetensors.index.json")
-                state_dict = {}
+                # 遍历索引中的分片并加载
+                for shard_file in sorted(set(index["weight_map"].values())):
+                    shard_path = os.path.join(dit_dir, shard_file)
+                    if not os.path.exists(shard_path):
+                        raise FileNotFoundError(f"找不到分片文件: {shard_path}。请确保所有 7 个分片都已下载并存放在该目录。")
+                    
+                    print(f"Loading shard: {shard_path}")
+                    shard_state_dict = load_file(shard_path)
+                    state_dict.update(shard_state_dict)
 
-                if os.path.exists(safetensors_index_path):
-                    # Handle sharded safetensors
-                    print(f"Loading sharded safetensors using index: {safetensors_index_path}")
+            elif os.path.exists(safetensors_path):
+                # 情况 B: 处理单个大文件
+                print(f"Loading weights from single safetensors: {safetensors_path}")
+                state_dict = load_file(safetensors_path)
 
-                    with open(safetensors_index_path, 'r') as f:
-                        index = json.load(f)
+            else:
+                # 情况 C: 啥也没找到，直接报错提醒，不再尝试 hf_hub_download
+                raise FileNotFoundError(
+                    f"\n[错误] 无法在本地找到权重文件！\n"
+                    f"请确认以下路径是否存在文件:\n"
+                    f"1. {safetensors_index_path}\n"
+                    f"2. {safetensors_path}\n"
+                    f"由于网络环境限制，自动下载已禁用，请手动下载并放置文件。"
+                )
 
-                    # Load each shard
-                    for shard_file in set(index["weight_map"].values()):
-                        shard_path = os.path.join(dit_dir, shard_file)
-                        print(f"Loading shard: {shard_path}")
-                        shard_state_dict = load_file(shard_path)
-                        state_dict.update(shard_state_dict)
+            # 4. 将加载好的 state_dict 塞进模型
+            missing_keys, unexpected_keys = self.model.load_state_dict(state_dict, strict=False)
 
-                elif os.path.exists(safetensors_path):
-                    # Handle single safetensors file
-                    print(f"Loading weights from safetensors: {safetensors_path}")
-                    state_dict = load_file(safetensors_path)
+            if missing_keys:
+                print(f"Missing keys when loading pretrained weights: {len(missing_keys)} keys missing.")
+            if unexpected_keys:
+                print(f"Unexpected keys: {len(unexpected_keys)} keys found.")
 
-                else:
-                    raise ValueError(f"No safetensors file found at {safetensors_path} or {safetensors_index_path}")
+            print("Successfully loaded pretrained weights from local storage.")
+            # --- [修改结束] ---
+            
+            # dit_dir = self.model.diffusion_model_pretrained_path
+            # if dit_dir is None or not os.path.isdir(dit_dir):
+            #     index_path = hf_hub_download(repo_id=WAN_HF_REPO_ID, filename="diffusion_pytorch_model.safetensors.index.json")
+            #     dit_dir = os.path.dirname(index_path)
+            #     with open(index_path, 'r') as f:
+            #         index = json.load(f)
+            #     for shard_file in set(index["weight_map"].values()):
+            #         hf_hub_download(repo_id=WAN_HF_REPO_ID, filename=shard_file)
 
-                missing_keys, unexpected_keys = self.model.load_state_dict(state_dict, strict=False)
+            # if dit_dir is not None:
+            #     safetensors_path = os.path.join(dit_dir, "diffusion_pytorch_model.safetensors")
+            #     safetensors_index_path = os.path.join(dit_dir, "diffusion_pytorch_model.safetensors.index.json")
+            #     state_dict = {}
 
-                if missing_keys:
-                    print(f"Missing keys when loading pretrained weights: {missing_keys}")
-                if unexpected_keys:
-                    print(f"Unexpected keys when loading pretrained weights: {unexpected_keys}")
+            #     if os.path.exists(safetensors_index_path):
+            #         # Handle sharded safetensors
+            #         print(f"Loading sharded safetensors using index: {safetensors_index_path}")
 
-                print("Successfully loaded pretrained weights")
+            #         with open(safetensors_index_path, 'r') as f:
+            #             index = json.load(f)
+
+            #         # Load each shard
+            #         for shard_file in set(index["weight_map"].values()):
+            #             shard_path = os.path.join(dit_dir, shard_file)
+            #             print(f"Loading shard: {shard_path}")
+            #             shard_state_dict = load_file(shard_path)
+            #             state_dict.update(shard_state_dict)
+
+            #     elif os.path.exists(safetensors_path):
+            #         # Handle single safetensors file
+            #         print(f"Loading weights from safetensors: {safetensors_path}")
+            #         state_dict = load_file(safetensors_path)
+
+            #     else:
+            #         raise ValueError(f"No safetensors file found at {safetensors_path} or {safetensors_index_path}")
+
+            #     missing_keys, unexpected_keys = self.model.load_state_dict(state_dict, strict=False)
+
+            #     if missing_keys:
+            #         print(f"Missing keys when loading pretrained weights: {missing_keys}")
+            #     if unexpected_keys:
+            #         print(f"Unexpected keys when loading pretrained weights: {unexpected_keys}")
+
+            #     print("Successfully loaded pretrained weights")
         else:
             print("Skipping individual component loading (loading from full pretrained model)")
         self.beta_dist = Beta(config.noise_beta_alpha, config.noise_beta_beta)
