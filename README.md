@@ -77,6 +77,16 @@ conda activate dreamzero
 ```
 
 2. **Install dependencies (PyTorch 2.8+ with CUDA 12.9+):**
+
+Inside company, you should do:
+```bash
+conda install -c conda-forge pyqt
+pip install --extra-index-url https://pypi.nvidia.com/ tensorrt-cu13-libs --trusted-host pypi.nvidia.com
+pip install -e . --extra-index-url https://download.pytorch.org/whl/cu129 --trusted-host download-r2.pytorch.org --trusted-host pypi.nvidia.com
+```
+
+Otherwise, just do
+
 ```bash
 pip install -e . --extra-index-url https://download.pytorch.org/whl/cu129
 ```
