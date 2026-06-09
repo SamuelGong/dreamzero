@@ -1,6 +1,6 @@
 # Personal Guidance for Running Toy Example
 
-If you are *not* using the company's internal network, simply follow the instructions on original [README](./README.md).
+If you are *not* using the company's internal network, simply follow the instructions on original [README](./README-original.md).
 
 Otherwise, follow me:
 
@@ -12,9 +12,9 @@ conda activate dreamzero
 
 conda install -c conda-forge pyqt
 pip install --extra-index-url https://pypi.nvidia.com/ tensorrt-cu13-libs --trusted-host pypi.nvidia.com
-pip install -e . --extra-index-url https://download.pytorch.org/whl/cu129 --trusted-host download-r2.pytorch.org --trusted-host pypi.nvidia.com
+no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation -e . --extra-index-url https://download.pytorch.org/whl/cu129 --trusted-host download-r2.pytorch.org --trusted-host pypi.nvidia.com
 
-MAX_JOBS=8 pip install --no-build-isolation flash-attn  # 8 here can be something larger
+MAX_JOBS=8 no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation flash-attn  # 8 here can be something larger
 ```
 
 ## Step 2: Downloading Models A Priori
