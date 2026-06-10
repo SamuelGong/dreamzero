@@ -27,7 +27,7 @@ Use the script `download_model.sh` to download the following required models
 
 And remember their paths.
 
-Suppose that they are located at `$DROID_PATH` and  `$WAN_DIR`, respectively.
+Suppose that they are located at `$DROID_DIR` and  `$WAN_DIR`, respectively.
 
 ## Step 3: Toy Server-Client example
 
@@ -55,3 +55,27 @@ CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --standalone --nproc_pe
 ```bash
 python test_client_AR.py --port 5000
 ```
+
+The generated videos (consisting of predicted frames) will be at `$DROID_DIR/../real_world_eval_gen_{date}_{index}/{model_name}/`.
+
+## Step 4: Simulation with Sim-Evals
+
+Preparing the simulation environment. First, manually install NVIDIA's Issac Lab:
+
+```bash
+
+```
+
+Then, do:
+
+```bash
+git -c http.sslVerify=false clone --recurse-submodules https://github.com/arhanjain/sim-evals.git
+cd sim-evals
+```
+
+```bash
+conda activate dreamero
+no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install uv --trusted-host pypi.org --trusted-host files.pythonhosted.org
+
+```
+
