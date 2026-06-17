@@ -60,13 +60,46 @@ The generated videos (consisting of predicted frames) will be at `$DROID_DIR/../
 
 ## Step 4: Simulation with Sim-Evals
 
-Preparing the simulation environment. First, manually install NVIDIA's Issac Lab:
+> Isaac Sim used by `sim-evals` needs to run with GPUs that have RT cores. Here I use Ubuntu 20.04 with L40 GPus to serve as an example.
 
 ```bash
 
 ```
 
-Then, do:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Preparing the simulation environment. First, manually install NVIDIA's Isaac Sim and Isaac Lab:
+
+```bash
+# Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
+cd $HOME
+
+# Isaac Sim (here 4.2.0 was used)
+wget --no-check-certificate https://download.isaacsim.omniverse.nvidia.com/isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip
+unzip isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip -d isaacsim
+
+# For testing
+export ISAACSIM_PATH="${HOME}/isaacsim"
+export ISAACSIM_PYTHON_EXE="${ISAACSIM_PATH}/python.sh"
+
+vulkaninfo | grep -i device
+${ISAACSIM_PATH}/isaac-sim.sh
+```
+
+
 
 ```bash
 git -c http.sslVerify=false clone --recurse-submodules https://github.com/arhanjain/sim-evals.git
