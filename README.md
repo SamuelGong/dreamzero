@@ -66,7 +66,7 @@ Preparing the simulation environment. First, manually install NVIDIA's Isaac Sim
 
 ```bash
 # Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
-cd $HOME
+cd $HOME  # or anywhere else that suits
 
 # Isaac Sim (here 4.2.0 was used)
 wget --no-check-certificate https://download.isaacsim.omniverse.nvidia.com/isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip
@@ -92,12 +92,15 @@ and also Isaac Lab:
 
 ```bash
 # Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
+cd $HOME  # or anywhere else that suits
 
 git clone https://github.com/isaac-sim/IsaacLab.git --branch main
 cd IsaacLab
 ln -s ${ISAACSIM_PATH} _isaac_sim
 
 ./isaaclab.sh --conda dreamzero
+no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation torch==2.7.0 --trusted-host download-r2.pytorch.org
+/isaaclab.sh -i
 
 ```
 
