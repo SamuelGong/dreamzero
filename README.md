@@ -62,26 +62,7 @@ The generated videos (consisting of predicted frames) will be at `$DROID_DIR/../
 
 > Isaac Sim used by `sim-evals` needs to run with GPUs that have RT cores. Here I use Ubuntu 20.04 with L40 GPus to serve as an example.
 
-```bash
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Preparing the simulation environment. First, manually install NVIDIA's Isaac Sim and Isaac Lab:
+Preparing the simulation environment. First, manually install NVIDIA's Isaac Sim:
 
 ```bash
 # Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
@@ -95,9 +76,23 @@ unzip isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_6
 export ISAACSIM_PATH="${HOME}/isaacsim"
 export ISAACSIM_PYTHON_EXE="${ISAACSIM_PATH}/python.sh"
 
-vulkaninfo | grep -i device
-${ISAACSIM_PATH}/isaac-sim.sh
+cd dreamzero
+chmod +x ./test_isaac_sim.sh
+./test_isaac_sim.sh  # as an alternative for directly running "$ISAACSIM_PATH/isaac-sim.sh"
+# Attention: could not be changed to "source ./test_isaac_sim.sh"
+# On success, one should see something like:
+# [94.378s] app ready
+# [94.651s] Isaac Sim App is loaded
 ```
+
+and also Isaac Lab:
+
+```bash
+# Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
+
+
+```
+
 
 
 
