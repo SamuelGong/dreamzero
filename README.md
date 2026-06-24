@@ -83,6 +83,9 @@ chmod +x ./test_isaac_sim.sh
 # On success, one should see something like:
 # [94.378s] app ready
 # [94.651s] Isaac Sim App is loaded
+
+./test_isaac_sim_python.sh
+# One should see similar output
 ```
 
 and also Isaac Lab:
@@ -90,6 +93,11 @@ and also Isaac Lab:
 ```bash
 # Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
 
+git clone https://github.com/isaac-sim/IsaacLab.git --branch main
+cd IsaacLab
+ln -s ${ISAACSIM_PATH} _isaac_sim
+
+./isaaclab.sh --conda dreamzero
 
 ```
 
