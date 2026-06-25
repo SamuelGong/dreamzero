@@ -98,10 +98,9 @@ git clone https://github.com/isaac-sim/IsaacLab.git --branch main
 cd IsaacLab
 ln -s ${ISAACSIM_PATH} _isaac_sim
 
-./isaaclab.sh --conda dreamzero
+./isaaclab.sh --conda env_isaaclab
 no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation torch==2.7.0 --trusted-host download-r2.pytorch.org
 /isaaclab.sh -i
-
 ```
 
 
