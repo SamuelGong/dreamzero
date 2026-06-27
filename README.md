@@ -68,7 +68,7 @@ Preparing the simulation environment. First, manually install NVIDIA's Isaac Sim
 # Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
 cd $HOME  # or anywhere else that suits
 
-# Isaac Sim (here 4.2.0 was used)
+# Isaac Sim (here 4.2.0 was used, because my Ubuntu is 20.04)
 wget --no-check-certificate https://download.isaacsim.omniverse.nvidia.com/isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip
 unzip isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip -d isaacsim
 
@@ -98,10 +98,17 @@ git clone https://github.com/isaac-sim/IsaacLab.git --branch main
 cd IsaacLab
 ln -s ${ISAACSIM_PATH} _isaac_sim
 
-./isaaclab.sh --conda env_isaaclab
-no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation torch==2.7.0 --trusted-host download-r2.pytorch.org
-/isaaclab.sh -i
+conda config --set ssl_verify false
+conda create env --name env_isaaclab --file environment.yml python=3.10
+conda activate env_isaaclab
+pip config set global.trusted-host "download.pytorch.org download-r2.pytorch.org pypi.org files.pythonhosted.org pypi.nvidia.com"
+./isaaclab.sh -i
+
+# For testing
+source _isaac_sim/setup_conda_env.sh
 ```
+
+
 
 
 
