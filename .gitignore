@@ -210,7 +210,6 @@ third_parties/
 
 # redis related
 *.rdb
-download_model.py
 .dockerignore
 
 # Sysid files
