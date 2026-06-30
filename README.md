@@ -4,20 +4,32 @@ If you are *not* using the company's internal network, simply follow the instruc
 
 Otherwise, follow me:
 
-## Step 1: Installation
+## 1. Dreamzero Policy Server
+
+> Here I use Ubuntu 22.04 with 3 H800 GPUs and NIVIDIA 580.82.07 Driver to serve as an example.
+
+### 1.1 Installation
 
 ```bash
+git clone git@github.com:SamuelGong/dreamzero.git
+cd dreamzero
+
 conda create -n dreamzero python=3.11
 conda activate dreamzero
 
 conda install -c conda-forge pyqt
-pip install --extra-index-url https://pypi.nvidia.com/ tensorrt-cu13-libs --trusted-host pypi.nvidia.com
-no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation -e . --extra-index-url https://download.pytorch.org/whl/cu129 --trusted-host download-r2.pytorch.org --trusted-host pypi.nvidia.com
+pip install tensorrt-cu13-libs
+pip install -e .
 
-MAX_JOBS=8 no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install --no-build-isolation flash-attn  # 8 here can be something larger
+MAX_JOBS=32 pip install --no-build-isolation flash-attn  # 32 here can be something larger
+# If failed because "invalid cross-device link" (probably because your temp folder and pip cache are using different disks)
+# Try this instead (The version is extracted from the error prompt):
+# wget -O flash_attn-2.8.3.post1+cu12torch2.8cxx11abiTRUE-cp311-cp311-linux_x86_64.whl \
+# "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3.post1/flash_attn-2.8.3.post1+cu12torch2.8cxx11abiTRUE-cp311-cp311-linux_x86_64.whl"
+# 
 ```
 
-## Step 2: Downloading Models A Priori
+### 1.2 Downloading Models A Priori
 
 Use the script `download_model.sh` to download the following required models 
 (by modifying the `REPO_ID` and `SAVE_DIR` respectively) from huggingface:
@@ -47,6 +59,12 @@ Then return to the project root, and open two separate terminal session to simul
 **Server**
 
 ```bash
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.run --standalone --nproc_per_node=1 socket_test_optimized_AR.py --port 5000 --enable-dit-cache --model-path <path to the downloaded GEAR-Dreams/DreamZero-DROID>
+```
+
+One can use more cores like:
+
+```bash
 CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --standalone --nproc_per_node=2 socket_test_optimized_AR.py --port 5000 --enable-dit-cache --model-path <path to the downloaded GEAR-Dreams/DreamZero-DROID>
 ```
 
@@ -58,69 +76,82 @@ python test_client_AR.py --port 5000
 
 The generated videos (consisting of predicted frames) will be at `$DROID_DIR/../real_world_eval_gen_{date}_{index}/{model_name}/`.
 
-## Step 4: Simulation with Sim-Evals
+## 2. Simulation with Sim-Evals
 
-> Isaac Sim used by `sim-evals` needs to run with GPUs that have RT cores. Here I use Ubuntu 20.04 with L40 GPus to serve as an example.
+[Reference](https://github.com/dreamzero0/dreamzero/blob/main/README.md#testing-out-dreamzero-in-simulation-with-api)
 
-Preparing the simulation environment. First, manually install NVIDIA's Isaac Sim:
+> Isaac Sim used by `sim-evals` needs to run with GPUs that have RT cores. Here I use Ubuntu 22.04 with RTX PRO 6000 GPUs and NIVIDIA 580.95.05 Driver to serve as an example.
+
+First we need to install system-related packages or drivers.
 
 ```bash
-# Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
-cd $HOME  # or anywhere else that suits
+apt-get update
+apt-get install -y vulkan-tools
+apt-get install -y \
+  libxt6 \
+  libglu1-mesa \
+  libgl1 \
+  libx11-6 \
+  libx11-xcb1 \
+  libxcb1 \
+  libxext6 \
+  libxrender1 \
+  libxi6 \
+  libxrandr2 \
+  libxinerama1 \
+  libxcursor1 \
+  libxkbcommon-x11-0 \
+  libsm6 \
+  libice6 \
+  vulkan-tools
 
-# Isaac Sim (here 4.2.0 was used, because my Ubuntu is 20.04)
-wget --no-check-certificate https://download.isaacsim.omniverse.nvidia.com/isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip
-unzip isaac-sim-standalone%404.2.0-rc.18%2Brelease.16044.3b2ed111.gl.linux-x86_64.release.zip -d isaacsim
+cat > /usr/share/vulkan/icd.d/nvidia_icd.json <<'EOF'
+{
+    "file_format_version": "1.0.0",
+    "ICD": {
+        "library_path": "libEGL_nvidia.so.0",
+        "api_version": "1.3.0"
+    }
+}
+EOF
 
-# For testing
-export ISAACSIM_PATH="${HOME}/isaacsim"
-export ISAACSIM_PYTHON_EXE="${ISAACSIM_PATH}/python.sh"
+echo 'export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json' >> ~/.bashrc
+source ~/.bashrc
+vulkaninfo --summary  # Should see some line like "deviceName = NVIDIA RTX PRO 6000 Blackwell Server Edition"
+```
 
+Then simulation software things:
+
+```bash
+git clone git@github.com:SamuelGong/dreamzero.git
 cd dreamzero
-chmod +x ./test_isaac_sim.sh
-./test_isaac_sim.sh  # as an alternative for directly running "$ISAACSIM_PATH/isaac-sim.sh"
-# Attention: could not be changed to "source ./test_isaac_sim.sh"
-# On success, one should see something like:
-# [94.378s] app ready
-# [94.651s] Isaac Sim App is loaded
 
-./test_isaac_sim_python.sh
-# One should see similar output
-```
-
-and also Isaac Lab:
-
-```bash
-# Reference: https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/binaries_installation.html
-cd $HOME  # or anywhere else that suits
-
-git clone https://github.com/isaac-sim/IsaacLab.git --branch main
-cd IsaacLab
-ln -s ${ISAACSIM_PATH} _isaac_sim
-
-conda config --set ssl_verify false
-conda create env --name env_isaaclab --file environment.yml python=3.10
-conda activate env_isaaclab
-pip config set global.trusted-host "download.pytorch.org download-r2.pytorch.org pypi.org files.pythonhosted.org pypi.nvidia.com"
-./isaaclab.sh -i
-
-# For testing
-source _isaac_sim/setup_conda_env.sh
-```
-
-
-
-
-
-
-```bash
 git -c http.sslVerify=false clone --recurse-submodules https://github.com/arhanjain/sim-evals.git
+# i.e., now you should have a folder named sim-evals under the path to dreamzero 
 cd sim-evals
+vim pyproject.toml
+# add this line:
+# build-constraint-dependencies = ["setuptools<82"]
+# to under [tool.uv]
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Install uv
+source $HOME/.local/bin/env
+# 'uv sync' needs an environment that has Python
+# if there is not, that we need to create one for temporary use as follows
+# conda create -n temp Python=3.11 -y
+# conda activate temp
+uv sync
+conda deactivate
+# may repeat 'conda deactivate' serveral times
+# until you are no longer in any conda environment, including base
+
+source .venv/bin/activate
+pip install torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu129
+# Download assets (may need to export HF_TOKEN=<YOUR_HUGGINGFACE_TOKEN> first)
+uvx hf download owhan/DROID-sim-environments --repo-type dataset --local-dir assets
+
+cd ..  # go back the the root directory of dreamzero
+pip install -e .
+python eval_utils/run_sim_eval.py \
+  --host [IP to the policy server] \
+  --port [port that the server exposes]
 ```
-
-```bash
-conda activate dreamero
-no_proxy="$no_proxy,.huawei.com,localhost,127.0.0.1" NO_PROXY="$NO_PROXY,.huawei.com,localhost,127.0.0.1" pip install uv --trusted-host pypi.org --trusted-host files.pythonhosted.org
-
-```
-
