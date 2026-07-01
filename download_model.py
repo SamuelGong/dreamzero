@@ -4,7 +4,8 @@ import os
 import sys
 from pathlib import Path
 
-from huggingface_hub import snapshot_download
+
+DEFAULT_MIRROR_ENDPOINT = "https://hf-mirror.com"
 
 
 def main() -> int:
@@ -47,10 +48,26 @@ def main() -> int:
         default=8,
         help="Number of parallel download workers. Default: 8.",
     )
+    parser.add_argument(
+        "--use-mirror",
+        action="store_true",
+        help=f"Use Hugging Face mirror endpoint: {DEFAULT_MIRROR_ENDPOINT}",
+    )
+    parser.add_argument(
+        "--mirror-endpoint",
+        default=DEFAULT_MIRROR_ENDPOINT,
+        help=f"Mirror endpoint to use when --use-mirror is set. Default: {DEFAULT_MIRROR_ENDPOINT}",
+    )
 
     args = parser.parse_args()
 
+    if args.use_mirror:
+        os.environ["HF_ENDPOINT"] = args.mirror_endpoint
+
     try:
+        # Important: import after setting HF_ENDPOINT.
+        from huggingface_hub import snapshot_download
+
         path = snapshot_download(
             repo_id=args.repo_id,
             revision=args.revision,
@@ -70,6 +87,8 @@ def main() -> int:
     print(f"Repo ID: {args.repo_id}")
     if args.revision:
         print(f"Revision: {args.revision}")
+    if args.use_mirror:
+        print(f"Mirror endpoint: {args.mirror_endpoint}")
     print(f"Snapshot path: {path}")
 
     return 0
