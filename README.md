@@ -31,26 +31,38 @@ MAX_JOBS=32 pip install --no-build-isolation flash-attn  # 32 here can be someth
 
 ### 1.2 Downloading Models A Priori
 
-Use the script `download_model.sh` to download the following required models 
-(by modifying the `REPO_ID` and `SAVE_DIR` respectively) from huggingface:
+Use the script `download_model.py` to download the following required models `GEAR-Dreams/DreamZero-DROID` and `Wan-AI/Wan2.1-I2V-14B-480P`.
 
-- GEAR-Dreams/DreamZero-DROID
-- Wan-AI/Wan2.1-I2V-14B-480P
+```bash
+# if not with the flag --use-mirror, one needs to use VPN or otherwise things can get extremely slow
+python download_model.py GEAR-Dreams/DreamZero-DROID  --use-mirror
+python download_model.py Wan-AI/Wan2.1-I2V-14B-480P --use-mirror
+```
 
 And remember their paths.
 
-Suppose that they are located at `$DROID_DIR` and  `$WAN_DIR`, respectively.
+Suppose that they are located at `$DROID_DIR` and  `$WAN_DIR`, respectively, something like:
+
+```
+/root/autodl-tmp/jiangzhifeng/.cache/huggingface/hub/models--GEAR-Dreams--DreamZero-DROID/snapshots/96ad344138c66e82536422432ad742f015784942/
+```
+
+, and
+
+```
+/root/autodl-tmp/jiangzhifeng/.cache/huggingface/hub/models--Wan-AI--Wan2.1-I2V-14B-480P/snapshots/6b73f84e66371cdfe870c72acd6826e1d61cf279/
+```
 
 ## Step 3: Toy Server-Client example
 
-First, go to the directory of the downloaded GEAR-Dreams/DreamZero-DROID.
+First, go to the directory of the downloaded `GEAR-Dreams/DreamZero-DROID`.
 where we will do some configurations as follows.
 
 1. For `config.json`:
    1. `action_head_cfg/config/diffusion_model_cfg/diffusion_model_pretrained_path`: change it to the path to `$WAN_DIR`.
    2. `action_head_cfg/config/image_encoder_cfg/image_encoder_pretrained_path`: change it to the path to `$WAN_DIR/models_clip_open-clip-xlm-roberta-large-vit-huge-14.pth`.
    3. `action_head_cfg/config/text_encoder_cfg/text_encoder_pretrained_path`: change it to the path to `$WAN_DIR/models_t5_umt5-xxl-enc-bf16.pth`.
-   4. `action_head_cfg/config/vae_cfg/vae_pretrained_path`: change it to the path to `$WAN_DIR/Wan2.1_VAE.pth`.
+   4. `action_head_cfg/config/vae_cfg/vae_pretrained_path`: change it to the path to `$WAN_DIR/"Wan2.1_VAE.pth`.
 2. For `experiment_cfg/conf.yaml`:
    1. `oxe_droid/transforms/tokenizer_path`: change it to the path to `$WAN_DIR/google/umt5-xxl`.
 
@@ -59,22 +71,24 @@ Then return to the project root, and open two separate terminal session to simul
 **Server**
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.run --standalone --nproc_per_node=1 socket_test_optimized_AR.py --port 5000 --enable-dit-cache --model-path <path to the downloaded GEAR-Dreams/DreamZero-DROID>
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.run --standalone --nproc_per_node=1 socket_test_optimized_AR.py --port 6006 --enable-dit-cache --model-path <path to the downloaded GEAR-Dreams/DreamZero-DROID>
 ```
 
 One can use more cores like:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --standalone --nproc_per_node=2 socket_test_optimized_AR.py --port 5000 --enable-dit-cache --model-path <path to the downloaded GEAR-Dreams/DreamZero-DROID>
+CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --standalone --nproc_per_node=2 socket_test_optimized_AR.py --port 6006 --enable-dit-cache --model-path <path to the downloaded GEAR-Dreams/DreamZero-DROID>
 ```
 
 **Client**
 
 ```bash
 python test_client_AR.py --port 5000
+# the server side should finally print something like:
+# INFO:__main__:Saved video on reset to: /root/autodl-tmp/jiangzhifeng/.cache/huggingface/hub/models--GEAR-Dreams--DreamZero-DROID/snapshots/96ad344138c66e82536422432ad742f015784942/real_world_eval_gen_20260702_0/000000_07_02_09_42_01_n17.mp4
 ```
 
-The generated videos (consisting of predicted frames) will be at `$DROID_DIR/../real_world_eval_gen_{date}_{index}/{model_name}/`.
+As shown, the generated videos (consisting of predicted frames) will be at `$DROID_DIR/real_world_eval_gen_{date}_{index}/{model_name}/`.
 
 ## 2. Simulation with Sim-Evals
 
