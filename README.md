@@ -83,7 +83,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.run --standalone --nproc_pe
 **Client**
 
 ```bash
-python test_client_AR.py --port 5000
+python test_client_AR.py --port 6006
 # the server side should finally print something like:
 # INFO:__main__:Saved video on reset to: /root/autodl-tmp/jiangzhifeng/.cache/huggingface/hub/models--GEAR-Dreams--DreamZero-DROID/snapshots/96ad344138c66e82536422432ad742f015784942/real_world_eval_gen_20260702_0/000000_07_02_09_42_01_n17.mp4
 ```
@@ -137,6 +137,8 @@ vulkaninfo --summary  # Should see some line like "deviceName = NVIDIA RTX PRO 6
 Then simulation software things:
 
 ```bash
+apt install ffmpeg
+
 git clone git@github.com:SamuelGong/dreamzero.git
 cd dreamzero
 
@@ -167,5 +169,5 @@ cd ..  # go back the the root directory of dreamzero
 pip install -e .
 python eval_utils/run_sim_eval.py \
   --host [IP to the policy server] \
-  --port [port that the server exposes]
+  --port 6006
 ```
