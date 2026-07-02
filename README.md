@@ -171,3 +171,6 @@ python eval_utils/run_sim_eval.py \
   --host [IP to the policy server] \
   --port 6006
 ```
+
+On success, one should see the generated videos at folders like `runs/2026-07-02/10-55-03`.
+One of the videos should be like [example.mp4](./example.mp4).
